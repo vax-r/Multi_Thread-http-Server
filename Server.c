@@ -27,21 +27,6 @@ void *Request_handler(void *arg_sockfd){
     //check the number of threads
     pthread_mutex_lock(&mu);
     num_of_threads++;
-    // if(num_of_threads>THREADS_LIMITATION){
-    //     printf("====================================================\n");
-    //     printf("Busy Server.\n");
-    //     printf("Num of threads %d\n",num_of_threads);
-    //     printf("====================================================\n");
-
-    //     send(sockfd,Busy_message,sizeof(Busy_message),0);
-    //     num_of_threads--;
-    //     pthread_mutex_unlock(&mu);
-    //     free(arg_sockfd);
-    //     shutdown(sockfd,SHUT_RDWR);
-    //     close(sockfd);
-    //     sockfd=-1;
-    //     pthread_exit(NULL);
-    // }
     pthread_mutex_unlock(&mu);
 
     if(request>0){
@@ -57,14 +42,14 @@ void *Request_handler(void *arg_sockfd){
         printf("Fail to receive.\n");
     }
 
-    sleep(1);
+    //You can place some function here, example:request form checking
+    // sleep(1);
 
     free(arg_sockfd);
     shutdown(sockfd,SHUT_RDWR);
     close(sockfd);
     sockfd=-1;
     
-    // sleep(1);
 
     pthread_mutex_lock(&mu);
     num_of_threads--;
