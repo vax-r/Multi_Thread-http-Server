@@ -9,7 +9,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#define THREADS_LIMITATION 5
+#define THREADS_LIMITATION 2
 
 pthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;
 int num_of_threads;
@@ -20,32 +20,19 @@ void *Request_handler(void *arg_sockfd){
     char inputBuffer[256]={};
     char Legal_message[]={"Good connection.\n"};
     char Bad_message[]={"Bad connection.\n"};
-    char Busy_message[]={"Server is too busy now.\n"};
+    char Busy_message[]={"Stop sending your idiot request.\n"};
     //receive the request content
     int request=recv(sockfd,inputBuffer,sizeof(inputBuffer),0);
 
     //check the number of threads
     pthread_mutex_lock(&mu);
     num_of_threads++;
-    if(num_of_threads>THREADS_LIMITATION){
-        printf("====================================================\n");
-        printf("Busy Server.\n");
-        printf("Num of threads %d\n",num_of_threads);
-        printf("====================================================\n");
-
-        send(sockfd,Busy_message,sizeof(Busy_message),0);
-        num_of_threads--;
-        pthread_mutex_unlock(&mu);
-        free(arg_sockfd);
-        shutdown(sockfd,SHUT_RDWR);
-        close(sockfd);
-        sockfd=-1;
-        pthread_exit(NULL);
-    }
     pthread_mutex_unlock(&mu);
 
     if(request>0){
-        printf("Connection Succeed, num of thread is %d\n",num_of_threads);
+        // printf("Connection Succeed, num of thread is %d\n",num_of_threads);
+        if(num_of_threads>1)
+            printf("Connection Succeed, num of thread is %d\n",num_of_threads);
         send(sockfd,Legal_message,sizeof(Legal_message),0);
     }
     else if(request==0){
@@ -55,14 +42,14 @@ void *Request_handler(void *arg_sockfd){
         printf("Fail to receive.\n");
     }
 
-    //sleep(1);
+    //You can place some function here, example:request form checking
+    // sleep(1);
 
     free(arg_sockfd);
     shutdown(sockfd,SHUT_RDWR);
     close(sockfd);
     sockfd=-1;
     
-    // sleep(1);
 
     pthread_mutex_lock(&mu);
     num_of_threads--;
@@ -93,10 +80,7 @@ int main(int argc,char *argv[]){
     bind(sockfd,(struct sockaddr*)&serverInfo,sizeof(serverInfo));
     listen(sockfd,20);
 
-    Legal_req=0;
-    iLLegal_req=0;
     num_of_threads=0;
-    Connection_num=0;
 
     const int SET=20;
     pthread_t server_thread[SET];
@@ -104,6 +88,13 @@ int main(int argc,char *argv[]){
     printf("Started to wait for client...\n");
     while((ClientSockfd=accept(sockfd,(struct sockaddr*)&clientInfo,&addrlen))){
         // printf("Connection accepted\n");
+
+        while(num_of_threads>THREADS_LIMITATION){
+            printf("=======================\n");
+            printf("Busy Server, number of threads is %d\n",num_of_threads);
+            printf("wait for 1 sec...\n");
+            sleep(1);
+        }
         new_sockfd=malloc(sizeof(int));//make room for an integer
         *new_sockfd=ClientSockfd;
 
